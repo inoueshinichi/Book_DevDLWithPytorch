@@ -1,0 +1,4 @@
+[About]
+・Back Born : ResNet (Network with Residual Block)
+・Key Point : Pyramid Pooling
+・Loss      : AuxLoss, SoftmaxLoss
