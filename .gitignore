@@ -1,0 +1,42 @@
+#############
+# Directory #
+#############
+/.vscode
+
+# Ch1
+/Ch1_PretrainedLearning/data/
+/Ch1_PretrainedLearning/weight/
+
+# Ch2
+/Ch2_SSD_ObjectDetection/data/
+/Ch2_SSD_ObjectDetection/weight/
+
+# Ch3
+/Ch3_PSPNet_SemanticSegmentation/data/
+/Ch3_PSPNet_SemanticSegmentation/weight/
+
+# Ch4
+/Ch4_OpenPose_PredictPose/data/
+/Ch4_OpenPose_PredictPose/weight/
+
+# Ch5
+/Ch5_GAN_GenerateImage/data/
+/Ch5_GAN_GenerateImage/weight/
+
+# Ch6
+/Ch6_GAN_AnomalyDetection/data/
+/Ch6_GAN_AnomalyDetection/weight/
+
+# Ch7
+/Ch7_Transformer_AnalyzeEmotion/data/
+/Ch7_Transformer_AnalyzeEmotion/weight/
+
+# Ch8
+/Ch8_BART_AnalyzeEmotion/data/
+/Ch8_BART_AnalyzeEmotion/weight/
+
+# Ch9
+/Ch9_3DCNN_ClassifyVideo/data/
+/Ch9_3DCNN_ClassifyVideo/weight/
+
+
