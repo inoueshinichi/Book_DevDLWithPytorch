@@ -135,3 +135,12 @@ def match(jaccard_thresh, gt_boxes, def_boxes, variances, labels):
 
     return loc, conf
 
+
+
+if __name__ == "__main__":
+
+    pass
+
+
+
+

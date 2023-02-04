@@ -1,7 +1,5 @@
 """SSD用ネットワークモデル
 """
-import torch
-from torch import nn
 
 """
     VGG   -> VGG16モデル. source1とsource2を出力
@@ -9,6 +7,9 @@ from torch import nn
     Loc   -> source1 ~ source6 から8732個のDBoxのオフセット情報を出力  : torch.Size([1, 8732, 4])
     Conf  -> source1 ~ source6 から8732個のDBoxの確信度情報を出力     : torch.Size([1, 8732, 4])  
 """
+
+import torch
+from torch import nn
 
 
 
@@ -57,9 +58,9 @@ def make_vgg():
     in_channels = 3
 
     # vggモジュールで使用する畳み込み層やMaxPooling層のチャンネル数
-    cfg = [64, 64, 'M',
-           128, 128, 'M',
-           256, 256, 256, 'MC',
+    cfg = [64, 64, 'M', 
+           128, 128, 'M', 
+           256, 256, 256, 'MC', 
            512, 512, 512,'M',
            512, 512, 512]
 
@@ -168,39 +169,37 @@ def make_extra():
         source5 ----> Conv2d(kernel_size=3, s=1, p=1, zero_padding) : [n x ○ x ○ x 4 x 21] (小正方形, 大正方形, 縦長長方形, 横長長方形) x 21種類のクラスラベル
         source6 ----> Conv2d(kernel_size=3, s=1, p=1, zero_padding) : [n x ○ x ○ x 4 x 21] (小正方形, 大正方形, 縦長長方形, 横長長方形) x 21種類のクラスラベル
 """
-
-
 def make_loc_conf(num_classes=21, bbox_aspect_num=[4, 6, 6, 6, 4, 4]):
     # デフォルトボックスのオフセットを出力するloc_layers
     # デフォルトボックスに対する各クラスの信頼度confidenceを出力するconf_layers
 
     loc_layers = []
     conf_layers = []
-
+    
     # VGGの22層目, conv4_3(source1)に対する畳込み層
     loc_layers += [nn.Conv2d(512, bbox_aspect_num[0] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(512, bbox_aspect_num[0] * num_classes, kernel_size=3, padding=1)]
-
+    
     # VGGの最終層(source2)に対する畳込み層
     loc_layers += [nn.Conv2d(1024, bbox_aspect_num[1] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(1024, bbox_aspect_num[1] * num_classes, kernel_size=3, padding=1)]
-
+    
     # extraの(source3)に対する畳み込み
     loc_layers += [nn.Conv2d(512, bbox_aspect_num[2] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(512, bbox_aspect_num[2] * num_classes, kernel_size=3, padding=1)]
-
+    
     # extraの(source4)に対する畳込み
     loc_layers += [nn.Conv2d(256, bbox_aspect_num[3] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(256, bbox_aspect_num[3] * num_classes, kernel_size=3, padding=1)]
-
+    
     # extraの(source5)に対する畳込み
     loc_layers += [nn.Conv2d(256, bbox_aspect_num[4] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(256, bbox_aspect_num[4] * num_classes, kernel_size=3, padding=1)]
-
+    
     # extraの(source6)に対する畳込み
     loc_layers += [nn.Conv2d(256, bbox_aspect_num[5] * 4, kernel_size=3, padding=1)]
     conf_layers += [nn.Conv2d(256, bbox_aspect_num[5] * num_classes, kernel_size=3, padding=1)]
-
+    
     return nn.ModuleList(loc_layers), nn.ModuleList(conf_layers)
 
 
@@ -209,56 +208,53 @@ def make_loc_conf(num_classes=21, bbox_aspect_num=[4, 6, 6, 6, 4, 4]):
 class L2Norm(nn.Module):
     # ConvC4_3からの出力をscale=20のL2normで正規化する
 
-    def __init__(self, input_channels=512, scale=20):
+    def __init__(self, input_channels = 512, scale = 20):
         super().__init__()
         self.weights = nn.Parameter(torch.Tensor(input_channels))
-        self.scale = scale  # 係数weightsをscaleで初期化する
-        self.reset_parameters()  # パラメータの初期化
+        self.scale = scale      # 係数weightsをscaleで初期化する
+        self.reset_parameters() # パラメータの初期化
         self.eps = 1e-10
-
+        
     def reset_parameters(self):
-        nn.init.constant_(self.weights, self.scale)  # 全てのweightをscale=20で初期化
-
+        nn.init.constant_(self.weights, self.scale) # 全てのweightをscale=20で初期化
+        
     def forward(self, x):
         '''
         38x38の特徴量に対して、512チャネルに渡って2乗和をのルートを求めた38x38個の値を使用し、
         各特徴量を正規化してから係数を掛け算する層
         '''
-
+        
         # normの計算
         # normのテンソルサイズはtorch.Size([batch_num, 1, 38, 38])
         norm = x.pow(2).sum(dim=1, keepdim=True).sqrt() + self.eps
         x = torch.div(x, norm)
-
+        
         # 係数の次元を調整
         # self.weightsのサイズはtorch.Size([512])なので、
         # torch.Size([batch_num, 512, 38, 38])まで変形する
         weights = self.weights.unsqueeze(0).unsqueeze(2).unsqueeze(3).expand_as(x)
-
+        
         # 正規化
         out = x * weights
 
         # print("out size: ", out.size())
-
+        
         return out
 
 
+from SSD_make_SSD_inference import Detect
+from SSD_default_boxes import DBox
+import torch.nn.functional as F
 
 """SSDモデルクラスを実装
 """
-import torch.nn.functional as F
-
-from inference import Detect
-from default_boxs import DBox
-
-
 class SSD(nn.Module):
 
     def __init__(self, phase, cfg):
         super().__init__()
 
-        self.phase = phase  # train or interfaceを指定
-        self.num_classes = cfg['num_classes']  # クラス数=21
+        self.phase = phase # train or interfaceを指定
+        self.num_classes = cfg['num_classes'] # クラス数=21
 
         # SSDネットワーク
         self.vgg = make_vgg()
@@ -275,6 +271,7 @@ class SSD(nn.Module):
         if phase == 'inference':
             self.detect = Detect()
 
+
     def forward(self, x):
         """
             input: (batch_num, 1)の画像
@@ -290,18 +287,15 @@ class SSD(nn.Module):
                 BBox : (batch_num, 21, 200, 5)
         """
 
-        # print("x size: ", x.size())
-        # print("input x in forward", x)
+        print("x size: ", x.size())
 
-        sources = list()  # source1~6を格納
-        loc = list()  # locを格納
-        conf = list()  # confを格納
+        sources = list() # source1~6を格納
+        loc = list()     # locを格納
+        conf = list()    # confを格納
 
         # 1) vggのconv4_3まで計算
         for k in range(23):
             x = self.vgg[k](x)
-            # if k == 0:
-            #     print("No.{0} x \n{1}".format(k, x))
 
         # 2) conv4_3の出力をL2Normに入力して,source1を作成
         source1 = self.L2Norm(x)
@@ -310,16 +304,15 @@ class SSD(nn.Module):
         # 3) vggを最後まで計算してsource2を作成
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
-        sources.append(x)  # source2
+        sources.append(x) # source2
 
         # 4) extraのconvとReLUを計算
         # source3~source6をsourcesに追加
-        for k, v in enumerate(self.extra):  # k : 0 ~ 7
+        for k, v in enumerate(self.extra): # k : 0 ~ 7
             # 引数なしかinplace=Falseとすると、入力したtensorとは別のtensorが返ってくる。
-            # inplace=Trueとすると、入力したtensorをそのまま書き換えて返す。
+            # inplace=Trueとすると、入力したtensorをそのまま書き換えて返す。 
             # 直接書き換えた方がメモリー使用を少なくできる
             x = F.relu(v(x), inplace=True)
-            # print("x in extra", x)
 
             # 偶数番目はsource*なのでsourcesに追加
             if k % 2 == 1:
@@ -327,6 +320,8 @@ class SSD(nn.Module):
                 sources.append(x)
 
         # print("sources len: ", len(sources))
+
+
 
         # source1~source6にそれぞれ対応する畳み込みを1回ずつ適用する
         # sources, self.loc, self.conf共に要素数6のリスト
@@ -356,8 +351,6 @@ class SSD(nn.Module):
         # conf: torch.Size([batch_num, 8732, 21])
         loc = loc.view(loc.size(0), -1, 4)
         conf = conf.view(conf.size(0), -1, self.num_classes)
-        # print("loc in forward of SSD Model", loc)
-        # print("conf in forward of SSD Model", conf)
 
         # 最後に出力
         output = (loc, conf, self.dbox_list)
@@ -366,7 +359,7 @@ class SSD(nn.Module):
         # print("dbox_list len: ", len(self.dbox_list))
 
         # 推論時と学習時で挙動を変える
-        if self.phase == 'inference':
+        if self.phase == 'interface':
             # Detectクラスのforwarを実行
             # 戻り値のサイズはtorch.Size([batch_num, 21, 200, 5])
             return self.detect(output[0], output[1], output[2])
@@ -374,6 +367,9 @@ class SSD(nn.Module):
             # 学習時
             # 戻り値は(loc, conf, dbox_list)のタプル
             return output
+            
+    
+
 
 
 if __name__ == "__main__":
@@ -404,3 +400,4 @@ if __name__ == "__main__":
     }
     ssd_test = SSD(phase="train", cfg=SSD300_cfg)
     print(ssd_test)
+

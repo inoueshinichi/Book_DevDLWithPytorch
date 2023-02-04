@@ -83,7 +83,7 @@ if __name__ == "__main__":
     bboxes = bboxes.astype(np.uint32)
     print("bboxes: ", bboxes)
 
-    img = Image.open("cowboy-757575_640.jpg")
+    img = Image.open("/Users/inoueshinichi/Desktop/QtGuiCVDevPy_v1.2.1/data/ImageSet/凹みsample6_0_0.bmp")#"cowboy-757575_640.jpg")
     img = img.convert('L').convert('RGB')
     img = img.resize((img_size, img_size))
     # img_array = np.asarray(img)
